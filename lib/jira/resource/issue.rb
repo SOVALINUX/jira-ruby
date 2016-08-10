@@ -77,6 +77,39 @@ module JIRA
         json = self.class.parse_json(response.body)
         json['fields']
       end
+	  
+	  # custom helpful methods
+	  
+	  def all_worklogs
+        search_url = "#{client.options[:rest_base_path]}/issue/#{id}/worklog"
+        response = client.get(search_url)
+        json = self.class.parse_json(response.body)
+        json['worklogs'].map do |worklog|
+          JIRA::Resource::Worklog.new(client, attrs: worklog, issue: self)
+        end
+      end
+
+      def has_parent?
+        fields.include?('parent')
+      end
+
+      def parent
+        client.Issue.find(fields['parent']['id'])
+      end
+
+      def has_linked_epic?
+        !linked_epic_key.nil?
+      end
+
+      def linked_epic_key
+        fields['customfield_14500']
+      end
+
+      def linked_epic
+        client.Issue.find(fields['customfield_14500'])
+      end
+	  
+	  # end of custom methods
 
       def respond_to?(method_name, include_all=false)
         if attrs.keys.include?('fields') && [method_name.to_s, client.Field.name_to_id(method_name)].any? {|k| attrs['fields'].key?(k)}
